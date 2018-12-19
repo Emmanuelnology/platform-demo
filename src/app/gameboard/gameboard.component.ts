@@ -1,4 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
+
+export enum KEY_CODE {
+  RIGHT_ARROW = 39,
+  UP_ARROW = 38,
+  LEFT_ARROW = 37,
+  SPACE = 32
+}
 
 @Component({
   selector: 'app-gameboard',
@@ -6,27 +13,41 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./gameboard.component.scss']
 })
 export class GameboardComponent implements OnInit {
+  allowKeyInput = true;
+  board = new Board;
+  character = new Character(this.board);
 
-  board = [
-  [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
-  [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
-  [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
-  [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
-  [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
-  [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
-  [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
-  [ new Block, new Block, new Block, new Block, new Grass, new Block, new Block, new Block, new Block, new Block],
-  [ new Block, new Block, new Block, new Grass, new Grass, new Grass, new Block, new Block, new Block, new Block],
-  [ new Grass, new Grass, new Grass, new Grass, new Grass, new Grass, new Grass, new Grass, new Grass, new Grass],
-  ];
 
-  character = new Character;
+  ngOnInit() {}
 
-  constructor() {
-    // this.character.moveLeft();
-   }
+  moveCharacterRight() {
+    this.character.moveRight();
+  }
 
-  ngOnInit() {
+  moveCharacterLeft() {
+    this.character.moveLeft();
+  }
+
+  jump() {
+    this.character.jump();
+  }
+
+
+  @HostListener('window:keydown', ['$event'])
+  keyDownEvent(event: KeyboardEvent) {
+    if (!event.repeat) {
+    if (event.keyCode === KEY_CODE.SPACE) {
+      this.jump();
+    }
+
+    if (event.keyCode === KEY_CODE.RIGHT_ARROW) {
+      this.moveCharacterRight();
+    }
+
+    if (event.keyCode === KEY_CODE.LEFT_ARROW) {
+      this.moveCharacterLeft();
+    }
+  }
   }
 
 }
@@ -34,42 +55,131 @@ export class GameboardComponent implements OnInit {
 class Block {
   color = 'white';
   class = '';
+  isSolid = false;
+  pos = {
+    x: 0,
+    y: 0
+  };
+
+
+  constructor(protected gameBoard = null) {
+
+  }
+}
+
+class GravityBlock extends Block {
+  isVisible = true;
+  fall() {
+      setTimeout(() => {
+        if (this.canMoveDown()) {
+          this.pos.y++;
+          if (this.pos.y > 10) {
+            this.destroy();
+          }
+          this.fall();
+        }
+        }, 100);
+  }
+
+  destroy() {
+    this.isVisible = false;
+  }
+
+  canMoveDown() {
+    if (this.pos.y === 9) {
+      this.destroy();
+      return false;
+    }
+    const targetBlock = this.gameBoard.getBlock(this.pos.x, this.pos.y + 1);
+    return !targetBlock.isSolid;
+  }
+
+  constructor(protected gameBoard) {
+    super(gameBoard);
+    this.fall();
+  }
 }
 
 class Grass extends Block {
   color = 'green';
   class = '';
+  isSolid = true;
 }
 
-class Character extends Block {
+class Rock extends Block {
+  image = 'rock.png';
+  class = '';
+  isSolid = true;
+}
+
+class Tree extends Block {
+  image = 'tree.jpg';
+  class = '';
+  isSolid = true;
+}
+
+class Character extends GravityBlock {
   color = 'white';
   class = 'character';
-  pos = {
-    x: 2,
-    y: 3
-  };
 
-  set x(value) {
-    this.pos.x = value;
+
+  canMoveRight() {
+    if (this.pos.x === 9) {
+      return false;
+    }
+    const targetBlock = this.gameBoard.getBlock(this.pos.x + 1, this.pos.y);
+    return !targetBlock.isSolid;
   }
 
-  set y(value) {
-    this.pos.x = value;
+  canMoveLeft() {
+    if (this.pos.x === 0) {
+      return false;
+    }
+    const targetBlock = this.gameBoard.getBlock(this.pos.x - 1, this.pos.y);
+    return !targetBlock.isSolid;
   }
 
   moveRight() {
-    this.pos.x++;
+    if (this.canMoveRight()) {
+      this.pos.x++;
+      this.fall();
+    }
   }
 
   moveLeft() {
-    this.pos.x--;
+    if (this.canMoveLeft()) {
+      this.pos.x--;
+      this.fall();
+    }
+
   }
 
-  get x() {
-    return this.pos.x - 1; // 0 base
+  jump() {
+      this.pos.y--;
+      setTimeout(() => {
+        this.fall();
+      }, 200);
   }
-  get y() {
-    return 10 - this.pos.y; // Invert and 0 base
-  }
+
+}
+
+
+export class Board {
+  grid = [
+    [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
+    [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
+    [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
+    [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
+    [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
+    [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
+    [ new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block, new Block],
+    [ new Block, new Block, new Block, new Block, new Tree, new Block, new Block, new Rock , new Block, new Block],
+    [ new Block, new Grass, new Block, new Grass, new Grass, new Grass, new Block, new Grass, new Block, new Block],
+    [ new Grass, new Grass, new Block, new Block, new Block, new Block, new Block , new Grass, new Grass, new Grass],
+    ];
+
+    getBlock(x: number, y: number) {
+      return this.grid[y][x];
+    }
 
 }

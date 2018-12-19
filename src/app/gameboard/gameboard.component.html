@@ -1,8 +1,19 @@
-<svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
-    <rect width="500" height="500" fill="white" stroke="grey" stroke-width="1"  />
-    <g *ngFor="let boardRow of board; let row = index">
+<div class = "dead" *ngIf="!character.isVisible">
+    Dead!
+</div> 
+<svg *ngIf="character.isVisible" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+    <rect width="500" height="500" fill="white" stroke="grey" stroke-width="0"  />
+    <g *ngFor="let boardRow of board.grid; let row = index">
         <g *ngFor="let block of boardRow; let col = index">
-        <rect
+            
+            <image *ngIf="block.image"
+            [attr.xlink:href]="'/assets/'+block.image " 
+            [attr.x]="col * 50" 
+            [attr.y]="row * 50" 
+            height="50" 
+            width="50"/>
+
+            <rect *ngIf="!block.image"
             [attr.x]="col * 50" 
             [attr.y]="row * 50" 
             width="50" 
@@ -14,8 +25,9 @@
         </g>
     </g>
     <rect
-    [attr.x]="character.x * 50" 
-    [attr.y]="character.y * 50" 
+    *ngIf="character.isVisible" 
+    [attr.x]="character.pos.x * 50" 
+    [attr.y]="character.pos.y * 50" 
     [attr.width]="50" 
     [attr.height]="50" 
     fill="blue" 
